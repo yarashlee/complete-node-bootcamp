@@ -3,25 +3,20 @@ const fs = require('fs');
 const http = require('http');
 const url = require('url');
 
+//3rd party module 
+const slugify = require('slugify');
+
+// importing our own module -- replaceTemplate.js -- file
+const replaceTemplate = require('./starter/modules/replaceTemplate');
 
 //SERVER
 // Create a web-server capable of recieving request and sending responses
 // Create server will accpt a callback function, which will be fired off each time a new request hits our server
 
+
 // synchronous version
 // top level code gets executes once, right in the beginning (once we start the program)
-const replaceTemplate = (temp, product) => {
-    let output = temp.replace(/{%PRODUCTNAME%}/g, product.productName);
-    output = output.replace(/{%ID%}/g, product.id);
-    output = output.replace(/{%IMAGE%}/g, product.image);
-    output = output.replace(/{%FROM%}/g, product.from);
-    output = output.replace(/{%NUTRIENTS%}/g, product.nutrients);
-    output = output.replace(/{%QUANTITY%}/g, product.quantity);
-    output = output.replace(/{%PRICE%}/g, product.price);
-    if(!product.organic) output = output.replace(/{%NOT_ORGANIC%}/g, 'not-organic');
-    output = output.replace(/{%DESCRIPTION%}/g, product.description);
-    return output;
-}
+// ** here was the replaceTemplate function we moved to ./starter/modules/replaceTemplate **
 
 const tempOverview = fs.readFileSync(`${__dirname}/starter/templates/template-overview.html`, 'utf-8');
 const tempCard = fs.readFileSync(`${__dirname}/starter/templates/template-card.html`, 'utf-8');
@@ -29,6 +24,10 @@ const tempProduct= fs.readFileSync(`${__dirname}/starter/templates/template-prod
 
 const data = fs.readFileSync(`${__dirname}/starter/dev-data/data.json`, 'utf-8');
 const dataObject = JSON.parse(data);
+
+// goal: use this dependency to change id for products on url
+const slugs = dataObject.map(el => slugify(el.productName, { lower: true }));
+console.log(slugs);
 
 // req = request variable ---- res= response variable 
 // this gets executed each time that there is a new request
@@ -52,7 +51,7 @@ const server = http.createServer((req, res) => {
         console.log(query);
 
         res.writeHead(200, {'Content-Type': 'text/html'});
-        
+
         const product = dataObject[query.id]
         const output = replaceTemplate(tempProduct, product);
 
