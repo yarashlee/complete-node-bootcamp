@@ -10,6 +10,23 @@ const url = require('url');
 
 // synchronous version
 // top level code gets executes once, right in the beginning (once we start the program)
+const replaceTemplate = (temp, product) => {
+    let output = temp.replace(/{%PRODUCTNAME%}/g, product.productName);
+    output = output.replace(/{%ID%}/g, product.id);
+    output = output.replace(/{%IMAGE%}/g, product.image);
+    output = output.replace(/{%FROM%}/g, product.from);
+    output = output.replace(/{%NUTRIENTS%}/g, product.nutrients);
+    output = output.replace(/{%QUANTITY%}/g, product.quantity);
+    output = output.replace(/{%PRICE%}/g, product.price);
+    if(!product.organic) output = output.replace(/{%NOT_ORGANIC%}/g, 'not-organic');
+    output = output.replace(/{%DESCRIPTION%}/g, product.description);
+    return output;
+}
+
+const tempOverview = fs.readFileSync(`${__dirname}/starter/templates/template-overview.html`, 'utf-8');
+const tempCard = fs.readFileSync(`${__dirname}/starter/templates/template-card.html`, 'utf-8');
+const tempProduct= fs.readFileSync(`${__dirname}/starter/templates/template-product.html`, 'utf-8');
+
 const data = fs.readFileSync(`${__dirname}/starter/dev-data/data.json`, 'utf-8');
 const dataObject = JSON.parse(data);
 
@@ -17,20 +34,32 @@ const dataObject = JSON.parse(data);
 // this gets executed each time that there is a new request
 const server = http.createServer((req, res) => {
     //send back a response to the client
-    console.log(req.url);
-    
-    const pathName = req.url;
+
+    const { query, pathname } = url.parse(req.url, true);
 
     //basic routing
-    if(pathName === '/' || pathName === '/overview') {
-        res.writeHead(200, {
-            'Content-Type': 'text/html',
-            'my-own-header': 'hello-it-worked' 
-        });
-        res.end('<h1> This is the OVERVIEW ! </h1>');
-    } else if (pathName === '/product') {
-        res.end('This is the PRODUCT !');
-    } else if (pathName === '/api') {
+    // Overview Page
+    if(pathname === '/' || pathname === '/overview') {
+        res.writeHead(200, {'Content-Type': 'text/html'});
+
+        const cardsHtml = dataObject.map(el => replaceTemplate(tempCard, el)).join('');
+        const output = tempOverview.replace('{%PRODUCT_CARDS%}', cardsHtml);
+
+        res.end(output);
+
+    // Product Page 
+    } else if (pathname === '/product') {
+        console.log(query);
+
+        res.writeHead(200, {'Content-Type': 'text/html'});
+        
+        const product = dataObject[query.id]
+        const output = replaceTemplate(tempProduct, product);
+
+        res.end(output);
+
+    // API
+    } else if (pathname === '/api') {
 
         res.writeHead(200, {'Content-type': 'application/json'});
         res.end(data);
@@ -46,6 +75,7 @@ const server = http.createServer((req, res) => {
         //     res.end(data);
         // });
 
+    // Not Found
     } else {
         res.writeHead(404, {
             // header piece of information about the response that wee are trying to send back
